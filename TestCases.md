@@ -120,6 +120,65 @@ When toggleFavoriteUser 메서드를 호출하면
 Then 사용자가 즐겨찾기에서 제거된다
 ```
 
+### 1.3 UserDetailUseCase
+
+#### Feature: GitHub API를 통한 사용자 상세 정보 조회
+**As a** 사용자  
+**I want to** GitHub 사용자의 상세 정보를 조회할 수 있다  
+**So that** 개발자의 자세한 프로필과 활동을 확인할 수 있다  
+
+##### Scenario: 유효한 사용자명으로 상세 정보 조회 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And UserDetailInteractor가 정상적으로 동작할 때
+When getUserDetail 메서드를 호출하면
+Then UserDetail이 반환된다
+  And 사용자의 상세 정보가 포함되어 있다
+```
+
+##### Scenario: 빈 사용자명으로 상세 정보 조회 실패
+```gherkin
+Given 빈 사용자명이 주어졌을 때
+When getUserDetail 메서드를 호출하면
+Then 적절한 에러가 발생한다
+```
+
+##### Scenario: 존재하지 않는 사용자명으로 조회 실패
+```gherkin
+Given 존재하지 않는 사용자명이 주어졌을 때
+When getUserDetail 메서드를 호출하면
+Then NotFoundError가 발생한다
+```
+
+#### Feature: GitHub API를 통한 사용자 레포지토리 조회
+**As a** 사용자  
+**I want to** GitHub 사용자의 공개 레포지토리를 조회할 수 있다  
+**So that** 개발자의 프로젝트와 기술 스택을 파악할 수 있다  
+
+##### Scenario: 유효한 사용자명으로 레포지토리 조회 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And 사용자가 공개 레포지토리를 가지고 있을 때
+When getUserRepositories 메서드를 호출하면
+Then Repository 배열이 반환된다
+  And 레포지토리 정보가 포함되어 있다
+```
+
+##### Scenario: 공개 레포지토리가 없는 사용자 조회
+```gherkin
+Given 공개 레포지토리가 없는 사용자명이 주어졌을 때
+When getUserRepositories 메서드를 호출하면
+Then 빈 배열이 반환된다
+```
+
+##### Scenario: 네트워크 오류로 인한 레포지토리 조회 실패
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And UserDetailInteractor에서 네트워크 오류가 발생할 때
+When getUserRepositories 메서드를 호출하면
+Then NetworkError가 발생한다
+```
+
 ---
 
 ## 2. Data Layer 테스트케이스
@@ -192,6 +251,48 @@ When searchUsers 메서드를 호출하면
 Then NetworkError.invalidRequest가 발생한다
 ```
 
+#### Feature: GitHub API 사용자 상세 정보 조회
+**As a** 시스템  
+**I want to** GitHub API를 통해 사용자 상세 정보를 조회할 수 있다  
+**So that** 사용자에게 풍부한 개발자 정보를 제공할 수 있다  
+
+##### Scenario: 유효한 사용자명으로 상세 정보 API 호출 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And NetworkClient가 정상적으로 동작할 때
+When getUserDetail 메서드를 호출하면
+Then UserDetail이 반환된다
+  And GitHub Users API가 한 번 호출된다
+```
+
+##### Scenario: 존재하지 않는 사용자명으로 API 호출
+```gherkin
+Given 존재하지 않는 사용자명이 주어졌을 때
+When getUserDetail 메서드를 호출하면
+Then NetworkError.notFound가 발생한다
+```
+
+#### Feature: GitHub API 사용자 레포지토리 조회
+**As a** 시스템  
+**I want to** GitHub API를 통해 사용자의 레포지토리를 조회할 수 있다  
+**So that** 개발자의 프로젝트 정보를 제공할 수 있다  
+
+##### Scenario: 유효한 사용자명으로 레포지토리 API 호출 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And NetworkClient가 정상적으로 동작할 때
+When getUserRepositories 메서드를 호출하면
+Then Repository 배열이 반환된다
+  And GitHub Repositories API가 한 번 호출된다
+```
+
+##### Scenario: 레포지토리 조회 중 API 한도 초과
+```gherkin
+Given GitHub API 호출 한도가 초과된 상태일 때
+When getUserRepositories 메서드를 호출하면
+Then NetworkError.rateLimitExceeded가 발생한다
+```
+
 ### 2.3 Repository Layer
 
 #### Feature: 사용자 검색 데이터 관리
@@ -213,6 +314,34 @@ Given FavoriteUserLocalService가 정상적으로 동작할 때
 When FavoriteUserRepository의 메서드들을 호출하면
 Then FavoriteUserLocalService의 해당 메서드가 호출된다
   And 결과가 그대로 반환된다
+```
+
+#### Feature: 사용자 상세 정보 데이터 관리
+**As a** 시스템  
+**I want to** 사용자 상세 정보 데이터를 안전하게 관리할 수 있다  
+**So that** 일관된 데이터 접근이 가능하다  
+
+##### Scenario: UserDetailRepository 사용자 상세 정보 조회 정상 동작
+```gherkin
+Given GitHubAPIService가 정상적으로 동작할 때
+When UserDetailRepository.getUserDetail을 호출하면
+Then GitHubAPIService.getUserDetail이 호출된다
+  And 결과가 그대로 반환된다
+```
+
+##### Scenario: UserDetailRepository 레포지토리 조회 정상 동작
+```gherkin
+Given GitHubAPIService가 정상적으로 동작할 때
+When UserDetailRepository.getUserRepositories를 호출하면
+Then GitHubAPIService.getUserRepositories가 호출된다
+  And 결과가 그대로 반환된다
+```
+
+##### Scenario: UserDetailRepository 에러 전파
+```gherkin
+Given GitHubAPIService에서 에러가 발생할 때
+When UserDetailRepository의 메서드를 호출하면
+Then 동일한 에러가 전파된다
 ```
 
 ### 2.4 Local Storage
@@ -361,6 +490,88 @@ Then currentSearchMode가 .favorites로 변경된다
   And 새로운 모드로 검색이 실행된다
 ```
 
+### 3.2 UserDetailViewModel
+
+#### Feature: 사용자 상세 정보 상태 관리
+**As a** 사용자  
+**I want to** 사용자 상세 정보의 로딩 상태가 명확하게 표시되기를 원한다  
+**So that** 현재 상황을 쉽게 파악할 수 있다  
+
+##### Scenario: 초기 상태 확인
+```gherkin
+Given UserDetailViewModel이 초기화되었을 때
+Then userDetail은 nil이다
+  And repositories는 빈 배열이다
+  And isLoading은 false이다
+  And errorMessage는 nil이다
+```
+
+##### Scenario: 유효한 사용자명으로 상세 정보 로딩 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And UserDetailUseCase가 성공적으로 응답할 때
+When loadUserDetail 메서드를 호출하면
+Then isLoading이 true에서 false로 변경된다
+  And userDetail에 사용자 정보가 설정된다
+  And repositories에 레포지토리 정보가 설정된다
+  And errorMessage가 nil이 된다
+```
+
+##### Scenario: 빈 사용자명으로 로딩 시도
+```gherkin
+Given 빈 사용자명이 주어졌을 때
+When loadUserDetail 메서드를 호출하면
+Then API가 호출되지 않는다
+  And isLoading이 false를 유지한다
+```
+
+##### Scenario: 상세 정보 로딩 중 에러 발생
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And UserDetailUseCase에서 에러가 발생할 때
+When loadUserDetail 메서드를 호출하면
+Then isLoading이 false가 된다
+  And errorMessage에 에러 메시지가 설정된다
+  And userDetail이 nil을 유지한다
+```
+
+#### Feature: 동시 데이터 로딩
+**As a** 시스템  
+**I want to** 사용자 정보와 레포지토리 정보를 동시에 로딩할 수 있다  
+**So that** 빠른 응답 시간을 제공할 수 있다  
+
+##### Scenario: 사용자 정보와 레포지토리 동시 로딩 성공
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And UserDetailUseCase의 두 메서드가 모두 성공할 때
+When loadUserDetail 메서드를 호출하면
+Then getUserDetail과 getUserRepositories가 동시에 호출된다
+  And 두 결과가 모두 설정된다
+```
+
+##### Scenario: 사용자 정보만 성공하고 레포지토리 로딩 실패
+```gherkin
+Given 유효한 사용자명이 주어졌을 때
+  And getUserDetail은 성공하지만 getUserRepositories는 실패할 때
+When loadUserDetail 메서드를 호출하면
+Then errorMessage에 에러가 설정된다
+  And userDetail과 repositories 모두 설정되지 않는다
+```
+
+#### Feature: 재시도 기능
+**As a** 사용자  
+**I want to** 로딩 실패 시 재시도할 수 있다  
+**So that** 일시적인 네트워크 오류를 극복할 수 있다  
+
+##### Scenario: 재시도 성공
+```gherkin
+Given 이전에 로딩이 실패했을 때
+  And UserDetailUseCase가 이번에는 성공할 때
+When retry 메서드를 호출하면
+Then loadUserDetail이 다시 실행된다
+  And 성공적으로 데이터가 로딩된다
+```
+
 ---
 
 ## 4. Integration Test Cases
@@ -384,6 +595,36 @@ Then 적절한 에러 메시지가 표시된다
   And 사용자가 재시도할 수 있는 옵션이 제공된다
 ```
 
+### 4.2 End-to-End 사용자 상세 정보 플로우
+
+#### Scenario: 완전한 사용자 상세 정보 조회 플로우
+```gherkin
+Given 사용자 검색 결과가 표시되어 있을 때
+When 사용자가 특정 사용자를 탭하면
+Then 사용자 상세 화면으로 네비게이션된다
+  And GitHub Users API와 Repositories API가 호출된다
+  And 사용자 정보와 레포지토리 목록이 표시된다
+```
+
+#### Scenario: 사용자 상세 정보 조회 실패 플로우
+```gherkin
+Given 사용자 상세 화면에 진입했을 때
+  And 네트워크 오류가 발생하면
+When 데이터 로딩이 시도되면
+Then 에러 메시지가 표시된다
+  And 재시도 버튼이 제공된다
+  And 재시도 시 데이터가 정상적으로 로딩된다
+```
+
+#### Scenario: 사용자 레포지토리 목록 표시 플로우
+```gherkin
+Given 사용자 상세 정보가 성공적으로 로딩되었을 때
+  And 사용자가 공개 레포지토리를 가지고 있을 때
+Then 레포지토리 목록이 카드 형태로 표시된다
+  And 각 레포지토리의 이름, 설명, 언어가 표시된다
+  And 스타 수와 포크 수가 표시된다
+```
+
 ---
 
 ## 5. Test Data & Mock Objects
@@ -392,12 +633,17 @@ Then 적절한 에러 메시지가 표시된다
 - **유효한 GitUser 객체들**
 - **다양한 SearchParameters 조합**
 - **에러 케이스별 Mock 응답**
+- **유효한 UserDetail 객체들**
+- **다양한 Repository 객체들**
+- **다양한 사용자명 케이스**
 
 ### 5.2 Mock Objects
 - **MockNetworkClient**: 네트워크 요청 시뮬레이션
 - **MockGitHubAPIService**: GitHub API 응답 시뮬레이션
 - **MockLocalStorage**: 로컬 저장소 동작 시뮬레이션
 - **MockUseCases**: UseCase 동작 시뮬레이션
+- **MockUserDetailUseCase**: UserDetail UseCase 시뮬레이션
+- **MockUserDetailInteractor**: UserDetail Interactor 시뮬레이션
 
 ---
 

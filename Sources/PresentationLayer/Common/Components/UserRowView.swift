@@ -31,7 +31,7 @@ public struct UserRowView: View {
                             .foregroundColor(.gray)
                     }
             }
-            .frame(width: 60, height: 60)
+            .frame(width: 50, height: 50)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // 사용자 정보
@@ -46,27 +46,31 @@ public struct UserRowView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
-                HStack {
-                    Label("Score: \(String(format: "%.1f", user.score))", systemImage: "star.fill")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                }
             }
             
             Spacer()
             
-            // 즐겨찾기 버튼
-            Button(action: onFavoriteToggle) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .foregroundColor(isFavorite ? .red : .gray)
-                    .font(.title2)
+            // 우측 버튼들
+            HStack(spacing: 12) {
+                // 즐겨찾기 버튼
+                Button(action: onFavoriteToggle) {
+                    Image(systemName: isFavorite ? "heart.fill" : "heart")
+                        .foregroundColor(isFavorite ? .red : .gray)
+                        .font(.title3)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // 화살표 아이콘
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+                    .font(.caption)
             }
-            .buttonStyle(PlainButtonStyle())
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
         .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
 

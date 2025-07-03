@@ -4,6 +4,7 @@ import DomainLayer
 public protocol DIContainerProtocol {
     var searchUserUseCase: SearchUserUseCase { get }
     var favoriteUserUseCase: FavoriteUserUseCase { get }
+    var userDetailUseCase: UserDetailUseCase { get }
 }
 
 public class DIContainer: DIContainerProtocol {
@@ -16,12 +17,15 @@ public class DIContainer: DIContainerProtocol {
     private let favoriteUserLocalService: FavoriteUserLocalServiceProtocol
     private let searchUserRepository: SearchUserDataProtocol
     private let favoriteUserRepository: FavoriteUserDataProtocol
+    private let userDetailRepository: UserDetailDataProtocol
     private let searchUserInteractor: SearchUserInteractor
     private let favoriteUserInteractor: FavoriteUserInteractor
+    private let userDetailInteractor: UserDetailInteractor
     
     // MARK: - Public Use Cases
     public let searchUserUseCase: SearchUserUseCase
     public let favoriteUserUseCase: FavoriteUserUseCase
+    public let userDetailUseCase: UserDetailUseCase
     
     // MARK: - Initializers
     public init(
@@ -43,10 +47,12 @@ public class DIContainer: DIContainerProtocol {
         // Repositories
         self.searchUserRepository = SearchUserRepository(apiService: self.gitHubAPIService)
         self.favoriteUserRepository = FavoriteUserRepository(localService: self.favoriteUserLocalService)
+        self.userDetailRepository = UserDetailRepository(apiService: self.gitHubAPIService)
         
         // Interactors
         self.searchUserInteractor = DefaultSearchUserInteractor(dataProtocol: self.searchUserRepository)
         self.favoriteUserInteractor = DefaultFavoriteUserInteractor(dataProtocol: self.favoriteUserRepository)
+        self.userDetailInteractor = DefaultUserDetailInteractor(dataProtocol: self.userDetailRepository)
         
         // Use Cases
         self.searchUserUseCase = DefaultSearchUserUseCase(
@@ -56,6 +62,10 @@ public class DIContainer: DIContainerProtocol {
         
         self.favoriteUserUseCase = DefaultFavoriteUserUseCase(
             favoriteUserInteractor: self.favoriteUserInteractor
+        )
+        
+        self.userDetailUseCase = DefaultUserDetailUseCase(
+            userDetailInteractor: self.userDetailInteractor
         )
     }
 }

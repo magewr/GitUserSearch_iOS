@@ -1,5 +1,6 @@
 import SwiftUI
 import DomainLayer
+import DataLayer
 
 public struct SearchUsersView: View {
     let viewModel: SearchUsersViewModel
@@ -130,17 +131,28 @@ public struct SearchUsersView: View {
     private var userListView: some View {
         List {
             ForEach(viewModel.users, id: \.id) { user in
-                UserRowView(
-                    user: user,
-                    isFavorite: viewModel.isFavoriteUser(user),
-                    onFavoriteToggle: {
-                        Task {
-                            await viewModel.toggleFavorite(for: user)
-                        }
+                ZStack {
+                    NavigationLink(destination: UserDetailView(
+                        username: user.login,
+                        userDetailUseCase: DIContainer.shared.userDetailUseCase
+                    )) {
+                        EmptyView()
                     }
-                )
+                    .opacity(0)
+                    
+                    UserRowView(
+                        user: user,
+                        isFavorite: viewModel.isFavoriteUser(user),
+                        onFavoriteToggle: {
+                            Task {
+                                await viewModel.toggleFavorite(for: user)
+                            }
+                        }
+                    )
+                }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .onAppear {
                     // 무한 스크롤
                     if user.id == viewModel.users.last?.id {
@@ -164,6 +176,7 @@ public struct SearchUsersView: View {
                 }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
         }
         .listStyle(PlainListStyle())

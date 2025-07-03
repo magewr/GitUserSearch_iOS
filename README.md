@@ -1,6 +1,6 @@
 # GitHub 사용자 검색 iOS 앱
 
-GitHub API를 활용한 모던 iOS 앱입니다. 사용자를 검색하고 즐겨찾기에 추가할 수 있으며, 클린 아키텍처와 최신 iOS 기술을 적용했습니다.
+GitHub API를 활용한 모던 iOS 앱입니다. 사용자를 검색하고 즐겨찾기에 추가할 수 있으며, 사용자 상세 정보와 레포지토리를 확인할 수 있습니다. 클린 아키텍처와 최신 iOS 기술을 적용했습니다.
 
 ## 🏗️ 아키텍처
 
@@ -90,8 +90,8 @@ Tests/
 ```
 
 ### 테스트 통계
-- **총 48개 테스트 케이스** (모두 통과 ✅)
-- **Domain Layer**: 6개 테스트
+- **총 54개 테스트 케이스** 
+- **Domain Layer**: 12개 테스트
 - **Data Layer**: 30개 테스트  
 - **Presentation Layer**: 10개 테스트
 - **기타**: 2개 테스트
@@ -165,12 +165,6 @@ xcodebuild -workspace GitUserSearch.xcworkspace -scheme GitUserSearch -destinati
 xcodebuild -workspace GitUserSearch.xcworkspace -scheme GitUserSearch -destination 'platform=iOS,name=Your Device Name' build
 ```
 
-### API 설정
-GitHub API는 별도 인증 없이 사용할 수 있지만, API 제한이 있습니다. 더 높은 제한을 원하는 경우:
-
-1. [GitHub Personal Access Token](https://github.com/settings/tokens) 생성
-2. `DataLayer/Remote/API/GitHubAPIService.swift`에서 토큰 추가
-
 ## 📁 프로젝트 구조
 
 ```
@@ -185,23 +179,69 @@ GitUserSearch_iOS/
 │   │   │   ├── SearchUsersView.swift
 │   │   │   ├── SearchUsersViewModel.swift
 │   │   │   └── ContentView.swift
+│   │   ├── Scenes/UserDetail/
+│   │   │   ├── UserDetailView.swift
+│   │   │   └── UserDetailViewModel.swift
 │   │   └── Common/Components/
 │   │       ├── UserRowView.swift
 │   │       └── SearchFilterView.swift
 │   ├── DomainLayer/                       # 비즈니스 로직
 │   │   ├── Entities/
+│   │   │   ├── GitUser.swift
+│   │   │   ├── UserDetail.swift
+│   │   │   └── Repository.swift
 │   │   ├── UseCases/
+│   │   │   ├── SearchUserUseCase.swift
+│   │   │   ├── FavoriteUserUseCase.swift
+│   │   │   └── UserDetailUseCase.swift
 │   │   └── RepositoryProtocols/
+│   │       ├── SearchUserRepositoryProtocol.swift
+│   │       ├── FavoriteUserRepositoryProtocol.swift
+│   │       └── UserDetailRepositoryProtocol.swift
 │   └── DataLayer/                         # 데이터 처리
 │       ├── Remote/API/
+│       │   ├── GitHubAPIService.swift
+│       │   └── GitHubEndpoint.swift
 │       ├── Local/Storage/
 │       ├── Repository/
+│       │   ├── SearchUserRepository.swift
+│       │   ├── FavoriteUserRepository.swift
+│       │   └── UserDetailRepository.swift
 │       └── Network/
 ├── Tests/                                 # 테스트 코드
 └── Derived/                               # Tuist 생성 파일
 ```
 
 ## 🎯 핵심 기능 구현
+
+### 사용자 상세 정보 로딩
+```swift
+// 사용자 정보와 레포지토리를 동시에 비동기 로딩
+private func loadUserDetail() async {
+    guard !isLoading else { return }
+    
+    isLoading = true
+    hasError = false
+    
+    do {
+        async let userDetailResult = userDetailUseCase.getUserDetail(username: username)
+        async let repositoriesResult = userDetailUseCase.getUserRepositories(username: username)
+        
+        let (userDetail, repositories) = try await (userDetailResult, repositoriesResult)
+        
+        await MainActor.run {
+            self.userDetail = userDetail
+            self.repositories = repositories
+            self.isLoading = false
+        }
+    } catch {
+        await MainActor.run {
+            self.hasError = true
+            self.isLoading = false
+        }
+    }
+}
+```
 
 ### 검색 디바운스
 ```swift
@@ -213,32 +253,6 @@ private func scheduleSearch() {
         if !Task.isCancelled {
             await searchUsers()
         }
-    }
-}
-```
-
-### Observation 프레임워크
-```swift
-@Observable
-public class SearchUsersViewModel {
-    public var searchText: String = ""
-    public var users: [GitUser] = []
-    public var isLoading: Bool = false
-    // ...
-}
-```
-
-### Repository 패턴
-```swift
-protocol SearchUserRepositoryProtocol {
-    func searchUsers(parameters: SearchParameters) async throws -> SearchResult
-}
-
-final class SearchUserRepository: SearchUserRepositoryProtocol {
-    private let apiService: GitHubAPIServiceProtocol
-    
-    func searchUsers(parameters: SearchParameters) async throws -> SearchResult {
-        return try await apiService.searchUsers(parameters: parameters)
     }
 }
 ```
